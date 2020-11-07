@@ -36,26 +36,35 @@ def appStarted(app):
     app.wormX, app.wormY = app.width/2, app.height/2
     app.snailX, app.snailY = app.width/2, app.height/2
     app.kimcheeToggle = True
-    app.coins = 0
+    app.Coins = 999
     #egg
     app.eggCounter = 0
     app.eggScreenVisible = False
     app.eggX, app.eggY = app.width/2, app.height/2
-    app.Worms, app.Snails, app.Seaweed, app.Moss, app.Rez, app.Ball, app.Coins = 0,0,0,0,0,0,0
+    app.inventory=dict()
+    app.inventory['worms']=0
+    app.inventory['snails']=0
+    app.inventory['seaweed']=0
+    app.inventory['moss']=0
+    app.inventory['rez']=0
+    app.inventory['ball']=0
+    #app.Worms, app.Snails, app.Seaweed, app.Moss, app.Rez, app.Ball = 0,0,0,0,0,0
     Amount_of_Worms = 0
     Amount_of_Snails = 0
     #play info
     app.timeSincePlay=0
     app.timeBored=1000
+    app.marketPageOne = True
+    app.marketPageTwo = False 
 
     #help
     app.helpx, app.helpy = app.width - 50, app.height - 50
     app.helpVisible = False
     #coin
     app.coinX=random.randint(app.aquariumL, app.aquariumR)
-    app.coinY=random.randint(app.aquariumBot-500,app.aquariumBot)
+    app.coinY=random.randint(app.aquariumBot-400,app.aquariumBot)
     app.coinTime=0
-    app.coinSearchTime=750
+    app.CoinsearchTime=750
     resetAxolotlStats(app)
 
 def resetAxolotlStats(app):
@@ -92,19 +101,19 @@ def mousePressed(app, event):
         bigmgn2 = 125
         if (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
         event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
-            if app.Coins >= 10:
+            if app.Coins >= 5:
                 print("Purchased worm")
-                app.Coins -= 10
-                app.Worms += 1
+                app.Coins -= 5
+                app.inventory['worms']+=1
             else:
                 print("No Money")
             
         elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
         event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
-            if app.Coins >= 25:
+            if app.Coins >= 10:
                 print("Purchased snail")
-                app.Coins -= 25
-                app.Snails += 1
+                app.Coins -= 10
+                app.inventory['snails']+=1
             else:
                 print("No Money")
             
@@ -113,7 +122,8 @@ def mousePressed(app, event):
             if app.Coins >= 25:
                 print("Purchased seaweed")
                 app.Coins -= 25
-                app.Seaweed += 1
+                app.inventory['seaweed']+=1
+                
             else:
                 print("No Money")
             
@@ -123,7 +133,8 @@ def mousePressed(app, event):
             if app.Coins >= 25:
                 print("Purchased moss")
                 app.Coins -= 25
-                app.Moss += 1
+                
+                app.inventory['moss']+=1
             else:
                 print("No Money")
                 
@@ -132,7 +143,8 @@ def mousePressed(app, event):
             if app.Coins >= 25:
                 print("Purchased rez")
                 app.Coins -= 25
-                app.Rez += 1
+                app.inventory['rez']+=1
+                
             else:
                 print("No Money")
                 
@@ -140,14 +152,21 @@ def mousePressed(app, event):
         event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
             if app.Coins >= 25:
                 print("Purchased ball")
+                app.inventory['ball']+=1
                 app.Coins -= 25
-                app.Ball += 1
             else:
                 print("No Money")           
 
 def keyPressed(app, event):
     if event.key == "Space":
         app.eggScreenVisible = True
+    if app.market:
+        if event.key == "1":
+            app.marketPageOne = True
+            app.marketPageTwo = False
+        elif event.key == "2":
+            app.marketPageOne = False
+            app.marketPageTwo = True
     
 def hatchEgg(app):
     if app.eggCounter > 11:
@@ -157,19 +176,19 @@ def hatchEgg(app):
 
 def placeCoin(app):
     app.coinX=random.randint(app.aquariumL, app.aquariumR)
-    app.coinY=random.randint(app.aquariumBot-500,app.aquariumBot)
+    app.coinY=random.randint(app.aquariumBot-400,app.aquariumBot)
     
 def timerFired(app):
     #seaweed sprite animation
-    if not app.market:
+    #if not app.market:
         if(app.time%1000==0 and app.hunger>0):app.hunger-=1
         app.time+=app.timerDelay
         app.timeSincePlay+=app.timerDelay
         app.coinTime+=app.timerDelay
-        if(app.coinTime==app.coinSearchTime):
+        if(app.coinTime==app.CoinsearchTime):
             placeCoin(app)
-        if(distance(app.kimcheeX, app.kimcheeY, app.coinX, app.coinY)<30): 
-            app.coins+=1
+        if(distance(app.kimcheeX, app.kimcheeY, app.coinX, app.coinY)<50): 
+            app.Coins+=5
             app.coinTime=0
             placeCoin(app)
         if(app.time==app.growThreshold):
@@ -211,7 +230,7 @@ def timerFired(app):
             moveKimchee(app)
         else:
             app.moving = False
-    
+
 
 def moveKimchee(app):
     if app.newX > app.kimcheeX: 
@@ -260,50 +279,126 @@ def drawMarketScreen(app, canvas):
     grid = 300
     bigmgn = 175
     bigmgn2 = 125
-    canvas.create_rectangle(bigmgn, bigmgn2, 
-                            app.width-bigmgn, app.height-bigmgn2, fill="pink")
-    #Worm 
-    canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
-                            mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
-    canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + 20,
-                        text="Worms", font="arial 20 bold")
-    worm=PhotoImage(file="wormBig.png")
-    canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
-    #Snail
-    canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
-                            mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
-    canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + 20,
-                        text="Snails", font="arial 20 bold")
-    snail=PhotoImage(file="snailBig.png")
-    canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
-    #Seaweed
-    canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
-                            mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
-    canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + 20,
-                        text="Seaweed", font="arial 20 bold")
-    seaweed=PhotoImage(file="seaweedBig.png")
-    canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=seaweed)
-    #Moss Ball
-    canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2 + grid, 
-                            mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid*2, fill="white")
-    canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid + 20,
-                        text="Moss Balls", font="arial 20 bold")
-    mossball=PhotoImage(file="mossball.png")
-    canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=mossball)
-    #Rez
-    canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, 
-                              mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
-    canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid + 20,
-                        text="Rez on Fifth", font="arial 20 bold")
-    rez=PhotoImage(file="rezBig.png")
-    canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=rez)
-    #Ball
-    canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
-                              mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
-    canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid + 20,
-                        text="Mystery Ball", font="arial 20 bold")
-    ball=PhotoImage(file="ballBig.png")
-    canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
+    if app.marketPageOne:
+        canvas.create_rectangle(bigmgn, bigmgn2, 
+                                app.width-bigmgn, app.height-bigmgn2, fill="pink")
+        canvas.create_text(app.width/2, bigmgn2 + 50, text="Market", font="arial 50 bold")
+        canvas.create_text(app.width/2, bigmgn2 + 100,
+                            text="Press 1,2, to switch between pages", font="arial 20 bold")
+        #Worm 
+        canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + 20,
+                            text="Worms", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid - 20,
+                            text="5", font="arial 20 bold")
+        worm=PhotoImage(file="wormBig.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
+        #Snail
+        canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + 20,
+                            text="Snails", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid - 20,
+                            text="10", font="arial 20 bold")
+        snail=PhotoImage(file="snailBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
+        #Seaweed
+        canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + 20,
+                            text="Seaweed", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid - 20,
+                            text="20", font="arial 20 bold")
+        seaweed=PhotoImage(file="seaweedBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=seaweed)
+        #Moss Ball
+        canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid + 20,
+                            text="Moss Balls", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        mossball=PhotoImage(file="mossball.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=mossball)
+        #Rez
+        canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid + 20,
+                            text="Rez on Fifth", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        rez=PhotoImage(file="rezBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=rez)
+        #Ball
+        canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid + 20,
+                            text="Mystery Ball", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        ball=PhotoImage(file="ballBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
+    elif app.marketPageTwo:
+        canvas.create_rectangle(bigmgn, bigmgn2, 
+                                app.width-bigmgn, app.height-bigmgn2, fill="blue")
+        canvas.create_text(app.width/2, bigmgn2 + 50, text="Market", font="arial 50 bold")
+        canvas.create_text(app.width/2, bigmgn2 + 100,
+                            text="Press 1,2, to switch between pages", font="arial 20 bold")
+        #Worm 
+        canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + 20,
+                            text="Worms", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid - 20,
+                            text="5", font="arial 20 bold")
+        worm=PhotoImage(file="wormBig.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
+        #Snail
+        canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + 20,
+                            text="Snails", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid - 20,
+                            text="10", font="arial 20 bold")
+        snail=PhotoImage(file="snailBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
+        #Seaweed
+        canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
+                                mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + 20,
+                            text="Seaweed", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid - 20,
+                            text="20", font="arial 20 bold")
+        seaweed=PhotoImage(file="seaweedBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=seaweed)
+        #Moss Ball
+        canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid + 20,
+                            text="Moss Balls", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        mossball=PhotoImage(file="mossball.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=mossball)
+        #Rez
+        canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid + 20,
+                            text="Rez on Fifth", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        rez=PhotoImage(file="rezBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=rez)
+        #Ball
+        canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
+                                mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid + 20,
+                            text="Mystery Ball", font="arial 20 bold")
+        canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*2 - 20,
+                            text="20", font="arial 20 bold")
+        ball=PhotoImage(file="ballBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
 
 def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
@@ -372,7 +467,7 @@ def drawStats(app, canvas):
         canvas.create_image(x1+(i*width), y1+width/2, image=empty) 
     coin=PhotoImage(file='coin.png')
     canvas.create_image(x0, y0+(width*3), image=coin)
-    canvas.create_text(x0-30, y0+(width*3),text=f'Coins: {app.coins}', font='arial 16 bold', anchor='e')
+    canvas.create_text(x0-30, y0+(width*3),text=f'Coins: {app.Coins}', font='arial 16 bold', anchor='e')
 
 def drawButtons(app, canvas):
     if app.market:
@@ -394,14 +489,27 @@ def drawHelpButton(app, canvas):
     canvas.create_oval(cx-15, cy-15, cx+15,cy+15, fill="red")   
     canvas.create_text(cx,cy, text="?",font='arial 24 bold', fill="white")
     canvas.create_text(cx-30,cy,anchor="e", text="click for help") 
-
+    
 def drawHelp(app, canvas):
     help=PhotoImage(file="help.png")
     canvas.create_image(app.width/2, app.height/2, image=help)
 def drawCoin(app, canvas):
     coin=PhotoImage(file='coin.png')
     canvas.create_image(app.coinX, app.coinY, image=coin)
-    
+
+def drawInventory(app, canvas):
+    x0=app.aquariumL+100
+    y0=app.aquariumBot+250
+    canvas.create_text(app.width/2, y0-40, text='Inventory', font='arial 18 bold' )
+    index=0
+    for item in app.inventory:
+        if(app.inventory[item]>0):
+            icon=PhotoImage(file=f'{item}Inventory.png')
+            canvas.create_image(x0+80*index, y0, image=icon)
+            number=app.inventory[item]
+            canvas.create_text(x0+80*index, y0+40, text=str(number), font='arial 12 bold')
+            index+=1
+        
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawDynamicAquarium(app, canvas)
@@ -415,15 +523,11 @@ def redrawAll(app, canvas):
         drawMarketScreen(app, canvas)
 
     
-
-    # drawKimcheeSmall(app, canvas)  
-    # drawKimcheeMedium(app, canvas) 
-    # drawKimcheeLarge(app, canvas) 
-
     drawStats(app, canvas)
     drawButtons(app, canvas)
     drawFood(app,canvas)
-    
+    drawInventory(app, canvas)
+
     if not app.gameStarted:
         drawSplashScreen(app, canvas)
         if app.eggScreenVisible:
