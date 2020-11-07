@@ -67,12 +67,20 @@ def appStarted(app):
     app.CoinsearchTime=750
     resetAxolotlStats(app)
 
+    #drag
+    app.drawnItems = []
+    app.currentx, app.currenty = 0,0
+    app.draggedItemX, app.draggedItemY = 0,0
+    app.currentImage = "worms"
+    app.dragging = False
+
 def resetAxolotlStats(app):
-    app.hunger=6
+    app.hunger=8
     app.size=0
-    app.happiness=3
+    app.happiness=5
     app.time=0
     app.growThreshold=1000
+    app.gameOver=False
 
 def mousePressed(app, event):
     if distance(event.x, event.y, app.helpx, app.helpy) < 15:
@@ -102,7 +110,6 @@ def mousePressed(app, event):
         if (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
         event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
             if app.Coins >= 5:
-                print("Purchased worm")
                 app.Coins -= 5
                 app.inventory['worms']+=1
             else:
@@ -111,7 +118,6 @@ def mousePressed(app, event):
         elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
         event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
             if app.Coins >= 10:
-                print("Purchased snail")
                 app.Coins -= 10
                 app.inventory['snails']+=1
             else:
@@ -120,7 +126,6 @@ def mousePressed(app, event):
         elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
         event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
             if app.Coins >= 25:
-                print("Purchased seaweed")
                 app.Coins -= 25
                 app.inventory['seaweed']+=1
                 
@@ -131,9 +136,7 @@ def mousePressed(app, event):
         elif (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
         event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
             if app.Coins >= 25:
-                print("Purchased moss")
-                app.Coins -= 25
-                
+                app.Coins -= 25              
                 app.inventory['moss']+=1
             else:
                 print("No Money")
@@ -141,7 +144,6 @@ def mousePressed(app, event):
         elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
         event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
             if app.Coins >= 25:
-                print("Purchased rez")
                 app.Coins -= 25
                 app.inventory['rez']+=1
                 
@@ -151,11 +153,56 @@ def mousePressed(app, event):
         elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
         event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
             if app.Coins >= 25:
-                print("Purchased ball")
                 app.inventory['ball']+=1
                 app.Coins -= 25
             else:
-                print("No Money")           
+                print("No Money")  
+
+    if not app.market and ((app.aquariumL+100< event.x < app.aquariumR -100) and 
+                app.aquariumBot + 250 < event.y < app.height):
+        app.dragging = True
+        
+
+def mouseDragged(app, event):
+    if app.dragging:
+        
+        itemIndex = getItem(app, app.currentx, app.currenty)
+        if itemIndex > len(currentList):
+            return
+        app.currentImage = currentList[itemIndex]
+        app.draggedItemX, app.draggedItemY = event.x, event.y
+
+# def mouseReleased(app, event):
+#     if app.dragging == True:
+#         app.dragging = False
+#         placeImage(app)
+
+# def placeImage(app):
+#     app.drawnItems += [(app.draggedItemX, app.draggedItemY, app.currentImage)]
+
+def getItem(app, x, y):
+    # aka "viewToModel"
+    # return (row, col) in which (x, y) occurred or (-1, -1) if outside grid.
+    x0=app.aquariumL+100
+    y0=app.aquariumBot+250
+
+    cellWidth  = 80
+    cellHeight = 100
+
+    # Note: we have to use int() here and not just // because
+    # row and col cannot be floats and if any of x, y, app.margin,
+    # cellWidth or cellHeight are floats, // would still produce floats.
+    if (x<x0) or (x>app.aquariumR - 100) or (y<y0):
+        return
+
+    currentList = []
+        for key in app.inventory:
+            if app.inventory[key] > 0:
+                currentList.append(key)
+    row = int((x - x0) / cellWidth)
+
+    return row
+
 
 def keyPressed(app, event):
     if event.key == "Space":
@@ -180,7 +227,7 @@ def placeCoin(app):
     
 def timerFired(app):
     #seaweed sprite animation
-    #if not app.market:
+    if not app.market:
         if(app.time%1000==0 and app.hunger>0):app.hunger-=1
         app.time+=app.timerDelay
         app.timeSincePlay+=app.timerDelay
@@ -213,6 +260,8 @@ def timerFired(app):
             if i>3:
                 i=1
             app.seaweed[n]=(x,y,i,s)
+        if app.hunger==0 or app.happiness==0:
+            app.gameOver=True
 
         #bouncing up and down
         if not app.moving:
@@ -230,7 +279,6 @@ def timerFired(app):
             moveKimchee(app)
         else:
             app.moving = False
-
 
 def moveKimchee(app):
     if app.newX > app.kimcheeX: 
@@ -345,7 +393,7 @@ def drawMarketScreen(app, canvas):
         canvas.create_text(app.width/2, bigmgn2 + 50, text="Market", font="arial 50 bold")
         canvas.create_text(app.width/2, bigmgn2 + 100,
                             text="Press 1,2, to switch between pages", font="arial 20 bold")
-        #Worm 
+        #Log 
         canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + 20,
@@ -354,7 +402,7 @@ def drawMarketScreen(app, canvas):
                             text="5", font="arial 20 bold")
         worm=PhotoImage(file="wormBig.png")
         canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
-        #Snail
+        #Taylor
         canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + 20,
@@ -363,7 +411,7 @@ def drawMarketScreen(app, canvas):
                             text="10", font="arial 20 bold")
         snail=PhotoImage(file="snailBig.png")
         canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
-        #Seaweed
+        #Dragon
         canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + 20,
@@ -493,6 +541,7 @@ def drawHelpButton(app, canvas):
 def drawHelp(app, canvas):
     help=PhotoImage(file="help.png")
     canvas.create_image(app.width/2, app.height/2, image=help)
+
 def drawCoin(app, canvas):
     coin=PhotoImage(file='coin.png')
     canvas.create_image(app.coinX, app.coinY, image=coin)
@@ -509,24 +558,31 @@ def drawInventory(app, canvas):
             number=app.inventory[item]
             canvas.create_text(x0+80*index, y0+40, text=str(number), font='arial 12 bold')
             index+=1
-        
-def redrawAll(app, canvas):
-    drawBackground(app, canvas)
-    drawDynamicAquarium(app, canvas)
-    drawCoin(app, canvas)
-    # drawKimchee(app, canvas) 
-    if not app.moving:
-        drawKimchee(app, canvas)
-    else:
-        drawSwimmingKimchee(app, canvas)
-    if app.market:
-        drawMarketScreen(app, canvas)
 
-    
-    drawStats(app, canvas)
-    drawButtons(app, canvas)
-    drawFood(app,canvas)
-    drawInventory(app, canvas)
+def drawDraggedItem(app, canvas):
+    icon=PhotoImage(file=f'wormsInventory.png')
+    canvas.create_image(app.draggedItemX, app.draggedItemY, image=icon)
+
+def redrawAll(app, canvas):
+    if app.gameStarted:
+        drawBackground(app, canvas)
+        drawDynamicAquarium(app, canvas)
+        drawCoin(app, canvas)
+        drawInventory(app, canvas)
+        # drawKimchee(app, canvas) 
+        if not app.moving:
+            drawKimchee(app, canvas)
+        else:
+            drawSwimmingKimchee(app, canvas)
+        if app.market:
+            drawMarketScreen(app, canvas)
+
+        
+        drawStats(app, canvas)
+        drawButtons(app, canvas)
+        drawFood(app,canvas)
+        if app.dragging:
+            drawDraggedItem(app,canvas)
 
     if not app.gameStarted:
         drawSplashScreen(app, canvas)
