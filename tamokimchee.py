@@ -10,7 +10,7 @@ def appStarted(app):
     app.aquariumBot=app.height-350
     app.kimcheeX = app.width/2
     app.kimcheeY = app.height/2
-    app.kimcheeSize = None
+    app.size = 0
     app.seaweed=[(app.aquariumL+100, app.aquariumBot-40,1,'l'), 
                  (app.aquariumR-50, app.aquariumBot,2,'s')]
     app.bubbles=[]
@@ -26,6 +26,7 @@ def appStarted(app):
     #moving
     app.newX, app.newY = 0, 0
     app.swimAnimations = [1,2,3,2]
+    app.kimcheeSizes = ["s", "m", "l"]
     app.kimcheei = 0
     app.moving = False
     app.movingDirection = None
@@ -33,6 +34,7 @@ def appStarted(app):
     app.market = False
     app.wormX, app.wormY = app.width/2, app.height/2
     app.snailX, app.snailY = app.width/2, app.height/2
+    app.kimcheeToggle = True
 
 def resetAxolotlStats(app):
     app.hunger=10
@@ -73,25 +75,34 @@ def timerFired(app):
         app.seaweed[n]=(x,y,i,s)
 
     #moving kimchee
-    if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) > 10:
+    if (app.kimcheeX != app.newX) and (app.kimcheeY != app.newY):
         app.kimcheei += 1
         app.kimcheei %= len(app.swimAnimations)
         moveKimchee(app)
     else:
         app.moving = False
+    
+    #bouncing up and down
+    if not app.moving:
+        if app.kimcheeToggle:
+            app.kimcheeY += 5
+            app.kimcheeToggle = not app.kimcheeToggle
+        else:
+            app.kimcheeY -= 5
+            app.kimcheeToggle = not app.kimcheeToggle
 
 def moveKimchee(app):
     if app.newX > app.kimcheeX: 
         dx = 1
-        app.movingDirection = "l"
+        app.movingDirection = "r"
     else: 
         dx = -1
-        app.movingDirection = "r"
+        app.movingDirection = "l"
     if app.newY > app.kimcheeY: dy = 1
     else: dy = -1
     app.kimcheeX += dx*10 
     app.kimcheeY += dy*10 
-    if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) < 10:
+    if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) < 20:
         app.kimcheeX = app.newX 
         app.kimcheeY = app.newY
     
@@ -146,20 +157,26 @@ def drawDynamicAquarium(app, canvas):
 def drawSwimmingKimchee(app, canvas):
     i = app.swimAnimations[app.kimcheei]
     d = app.movingDirection
-    swimchee=PhotoImage(file=f"swim{i}{d}.png") 
+    size = app.kimcheeSizes[app.size]
+    swimchee=PhotoImage(file=f"{size}swim{i}{d}.png") 
     canvas.create_image(app.kimcheeX, app.kimcheeY, image=swimchee)
+
+def drawKimchee(app, canvas):
+    size = app.kimcheeSizes[app.size]
+    kimchee=PhotoImage(file=f"{size}front.png") 
+    canvas.create_image(app.kimcheeX, app.kimcheeY, image=kimchee)
     
-def drawKimcheeSmall(app, canvas):
-    kimcheeSmall=PhotoImage(file="axolotlSmall.png") 
-    canvas.create_image(app.width/2, app.height/2, image=kimcheeSmall)
+# def drawKimcheeSmall(app, canvas):
+#     kimcheeSmall=PhotoImage(file=f"axolotlSmall.png") 
+#     canvas.create_image(app.width/2, app.height/2, image=kimcheeSmall)
 
-def drawKimcheeMedium(app, canvas):
-    kimcheeMedium=PhotoImage(file="axolotlMedium.png") 
-    canvas.create_image(app.width/2 + 200, app.height/2, image=kimcheeMedium)
+# def drawKimcheeMedium(app, canvas):
+#     kimcheeMedium=PhotoImage(file="axolotlMedium.png") 
+#     canvas.create_image(app.width/2 + 200, app.height/2, image=kimcheeMedium)
 
-def drawKimcheeLarge(app, canvas):
-    kimcheeLarge=PhotoImage(file="axolotlLarge.png") 
-    canvas.create_image(app.width/2 + 400, app.height/2, image=kimcheeLarge)
+# def drawKimcheeLarge(app, canvas):
+#     kimcheeLarge=PhotoImage(file="axolotlLarge.png") 
+#     canvas.create_image(app.width/2 + 400, app.height/2, image=kimcheeLarge)
 
 
 def drawStats(app, canvas):
@@ -192,10 +209,12 @@ def drawButtons(app, canvas):
     canvas.create_image(app.marketX, app.marketY, image=marketButton)
 
 def drawFood(app, canvas):
-    WormPicture=PhotoImage(file="Worm.png")
-    canvas.create_image(app.wormX, app.wormY, image=WormPicture)
-    SnailPicture=PhotoImage(file="Snail.png")
-    canvas.create_image(app.snailX, app.snailY, image=SnailPicture)
+    if app.market:
+        WormPicture=PhotoImage(file="Worm.png")
+        canvas.create_image(app.wormX, app.wormY, image=WormPicture)
+    if app.market:
+        SnailPicture=PhotoImage(file="Snail.png")
+        canvas.create_image(app.snailX, app.snailY, image=SnailPicture)
 
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
@@ -203,9 +222,13 @@ def redrawAll(app, canvas):
     # drawKimchee(app, canvas)  
     if app.moving:
         drawSwimmingKimchee(app, canvas)
-    drawKimcheeSmall(app, canvas)  
-    drawKimcheeMedium(app, canvas) 
-    drawKimcheeLarge(app, canvas) 
+    else:
+        drawKimchee(app, canvas)
+
+    # drawKimcheeSmall(app, canvas)  
+    # drawKimcheeMedium(app, canvas) 
+    # drawKimcheeLarge(app, canvas) 
+
     drawStats(app, canvas)
     drawButtons(app, canvas)
     drawFood(app,canvas)
