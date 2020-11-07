@@ -1,9 +1,11 @@
 from cmu_112_graphics import *
 import random
+from PIL import Image
 
 # from dataclasses import make_dataclass
 
 def appStarted(app):
+    app.gameStarted = False
     
     app.aquariumL=120
     app.aquariumR=app.width-120
@@ -35,12 +37,18 @@ def appStarted(app):
     app.wormX, app.wormY = app.width/2, app.height/2
     app.snailX, app.snailY = app.width/2, app.height/2
     app.kimcheeToggle = True
-    
+    app.coins = 0
     #egg
     app.eggCounter = 0
-
+    app.eggScreenVisible = False
+    app.eggX, app.eggY = app.width/2, app.height/2
+    Worms, Snails, Seaweed, Moss, Rez, Ball = 0,0,0,0,0,0
+    inventory = [Worms, Snails, Seaweed, Moss, Rez, Ball]
     Amount_of_Worms = 0
     Amount_of_Snails = 0
+    #play info
+    app.timeSincePlay=0
+    app.timeBored=1000
     
 
 def resetAxolotlStats(app):
@@ -49,30 +57,79 @@ def resetAxolotlStats(app):
     app.happiness=3
     app.time=0
     app.growThreshold=1000
+
 def mousePressed(app, event):
+    if app.eggScreenVisible:
+        if distance(event.x, event.y, app.eggX, app.eggY) < 300:
+            app.eggCounter += 1
+            hatchEgg(app)
+            
     if (event.x>app.marketX-(app.marketWidth/2) and event.x<(app.marketX+app.marketWidth/2)
     and event.y>(app.marketY-app.marketHeight/2) and event.y<(app.marketY+app.marketHeight/2)):
         app.market= not app.market
     
     if (app.aquariumL<event.x<app.aquariumR and 100<event.y<app.aquariumBot) and not app.moving:
             app.newX, app.newY = event.x, event.y
-            
+            app.timeSincePlayed=0
             app.moving = not app.moving
             if app.newX > app.kimcheeX: 
                 app.movingDirection = "r"
             else: 
                 app.movingDirection = "l"
+    if app.market:
+        mgn = 75
+        grid = 300
+        bigmgn = 175
+        bigmgn2 = 125
+        if (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            print("Purchased worm")
+        elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            print("Purchased snail")
+        elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            print("Purchased seaweed")
+        elif (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            print("Purchased mossball")
+        elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            print("purchased rez")
+        elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            print("purchased ball")            
 
+def keyPressed(app, event):
+    if event.key == "Space":
+        app.eggScreenVisible = True
+    
+def hatchEgg(app):
+    if app.eggCounter > 10:
+        app.gameStarted = True
+        app.eggScreenVisible = False
+    
 
 def timerFired(app):
     #seaweed sprite animation
     if(app.time%500==0 and app.hunger>0):app.hunger-=1
     app.time+=app.timerDelay
+    app.timeSincePlay+=app.timerDelay
     if(app.time==app.growThreshold):
         app.size+=1
         app.time-=app.growThreshold
         if(app.size>2):
             app.size=2
+
+    if app.timeSincePlay==app.timeBored:
+        if(app.happiness>0):app.happiness-=2
+        app.newX, app.newY = random.randint(app.aquariumL, app.aquariumR), random.randint(app.aquariumBot-500,app.aquariumBot)
+        app.timeSincePlay=0
+        app.moving = not app.moving
+        if app.newX > app.kimcheeX: 
+            app.movingDirection = "r"
+        else: 
+            app.movingDirection = "l"
     updateBubbles(app)
     for n in range(len(app.seaweed)):
         x,y,i,s = app.seaweed[n]
@@ -146,15 +203,37 @@ def drawMarketScreen(app, canvas):
     bigmgn = 175
     bigmgn2 = 125
     canvas.create_rectangle(bigmgn, bigmgn2, 
-                            app.width-bigmgn, app.height-bigmgn2)
-    canvas.create_rectangle(mgn, mgn*2, mgn + grid, mgn*2 +grid)
-    canvas.create_rectangle(mgn + grid, mgn*2, mgn + 2*grid, mgn*2 + grid)
-    canvas.create_rectangle(mgn + 2*grid, mgn*2, mgn + 3*grid, mgn*2 + grid)
-    canvas.create_rectangle(mgn, mgn*2 + grid, mgn + grid, mgn*2 + grid*2)
-    canvas.create_rectangle(mgn + grid, mgn*2 + grid, 
-                              mgn + 2*grid, mgn*2 + grid*2)
-    canvas.create_rectangle(mgn + 2*grid, mgn*2 + grid, 
-                              mgn + 3*grid, mgn*2 + grid*2)
+                            app.width-bigmgn, app.height-bigmgn2, fill="pink")
+    #Worm 
+    canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
+                            mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
+    worm=PhotoImage(file="wormBig.png")
+    canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
+    #Snail
+    canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
+                            mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
+    snail=PhotoImage(file="snailBig.png")
+    canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
+    #Seaweed
+    canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
+                            mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
+    seaweed=PhotoImage(file="seaweedBig.png")
+    canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=seaweed)
+    #Moss Ball
+    canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2 + grid, 
+                            mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+    mossball=PhotoImage(file="mossball.png")
+    canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=mossball)
+    #Rez
+    canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, 
+                              mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+    rez=PhotoImage(file="rezBig.png")
+    canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=rez)
+    #Ball
+    canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
+                              mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
+    ball=PhotoImage(file="ballBig.png")
+    canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
 
 def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
@@ -200,7 +279,16 @@ def drawKimchee(app, canvas):
 #     canvas.create_image(app.width/2 + 400, app.height/2, image=kimcheeLarge)
 
 def drawSplashScreen(app, canvas):
-    pass
+    splashScreen=PhotoImage(file='splashscreen.png')
+    canvas.create_image(app.width/2, app.height/2, image=splashScreen)  
+
+def drawEggScreen(app, canvas):
+    canvas.create_rectangle(0,0,app.width, app.height, fill="white")
+    canvas.create_text(app.width/2, app.height*(3/4),font='arial 24 bold',
+                         text="Click on the egg to hatch your axolotl!")
+    
+    egg=PhotoImage(file='egg1.png')
+    canvas.create_image(app.eggX, app.eggY,image=egg)  
 
 def drawStats(app, canvas):
     x0,y0=150,10
@@ -223,6 +311,9 @@ def drawStats(app, canvas):
         x1=width*app.happiness+x0*1
         empty=PhotoImage(file="sad.png")
         canvas.create_image(x1+(i*width), y1+width/2, image=empty) 
+    coin=PhotoImage(file='coin.png')
+    canvas.create_image(x0, y0+(width*3), image=coin)
+    canvas.create_text(x0-30, y0+(width*3),text=f'Coins: {app.coins}', font='arial 16 bold', anchor='e')
 
 def drawButtons(app, canvas):
     if app.market:
@@ -232,8 +323,6 @@ def drawButtons(app, canvas):
     canvas.create_image(app.marketX, app.marketY, image=marketButton)
 
 def drawFood(app, canvas):
-    WormPicture=PhotoImage(file="Worm.png")
-    SnailPicture=PhotoImage(file="Snail.png")
     if app.market:
         WormPicture=PhotoImage(file="Worm.png")
         canvas.create_image(app.wormX-50, app.wormY, image=WormPicture)
@@ -241,7 +330,9 @@ def drawFood(app, canvas):
         SnailPicture=PhotoImage(file="Snail.png")
         canvas.create_image(app.snailX+50, app.snailY, image=SnailPicture)
     
+    
 def redrawAll(app, canvas):
+    
     drawBackground(app, canvas)
     drawDynamicAquarium(app, canvas)
     # drawKimchee(app, canvas)  
@@ -251,8 +342,7 @@ def redrawAll(app, canvas):
         drawSwimmingKimchee(app, canvas)
     if app.market:
         drawMarketScreen(app, canvas)
-
-
+    
 
     # drawKimcheeSmall(app, canvas)  
     # drawKimcheeMedium(app, canvas) 
@@ -261,5 +351,10 @@ def redrawAll(app, canvas):
     drawStats(app, canvas)
     drawButtons(app, canvas)
     drawFood(app,canvas)
+    
+    if not app.gameStarted:
+        drawSplashScreen(app, canvas)
+        if app.eggScreenVisible:
+            drawEggScreen(app, canvas)
     
 runApp(width=1400, height=1000)
