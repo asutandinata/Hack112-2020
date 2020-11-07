@@ -42,15 +42,18 @@ def appStarted(app):
     app.eggScreenVisible = False
     app.eggX, app.eggY = app.width/2, app.height/2
     app.inventory=dict()
-    app.inventory['worms']=0
-    app.inventory['snails']=0
-    app.inventory['seaweed']=0
-    app.inventory['moss']=0
-    app.inventory['rez']=0
-    app.inventory['ball']=0
-    #app.Worms, app.Snails, app.Seaweed, app.Moss, app.Rez, app.Ball = 0,0,0,0,0,0
-    Amount_of_Worms = 0
-    Amount_of_Snails = 0
+    app.inventory['worms']=1
+    app.inventory['snails']=1
+    app.inventory['seaweed']=1
+    app.inventory['moss']=1
+    app.inventory['rez']=1
+    app.inventory['ball']=1
+    app.inventory['log']=1
+    app.inventory['flag']=1
+    app.inventory['beer']=1
+    app.inventory['dragon']=1
+    app.inventory['taylor']=1
+    app.inventory['kosbie']=1
     #play info
     app.timeSincePlay=0
     app.timeBored=1000
@@ -71,8 +74,9 @@ def appStarted(app):
     app.drawnItems = []
     app.currentx, app.currenty = 0,0
     app.draggedItemX, app.draggedItemY = 0,0
-    app.currentImage = "worms"
+    app.currentImage = None
     app.dragging = False
+    app.drawDraggedItem = False
 
 def resetAxolotlStats(app):
     app.hunger=8
@@ -102,7 +106,7 @@ def mousePressed(app, event):
                 app.movingDirection = "r"
             else: 
                 app.movingDirection = "l"
-    if app.market:
+    if app.market and app.marketPageOne:
         mgn = 75
         grid = 300
         bigmgn = 175
@@ -157,30 +161,90 @@ def mousePressed(app, event):
                 app.Coins -= 25
             else:
                 print("No Money")  
+    elif app.market and app.marketPageTwo:
+        mgn = 75
+        grid = 300
+        bigmgn = 175
+        bigmgn2 = 125
+        if (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            if app.Coins >= 25:
+                app.Coins -= 25
+                app.inventory['log']+=1
+            else:
+                print("No Money")
+            
+        elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            if app.Coins >= 25:
+                app.Coins -= 25
+                app.inventory['flag']+=1
+            else:
+                print("No Money")
+            
+        elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
+        event.y>mgn*2 + bigmgn2 and event.y<mgn*2 + bigmgn2 + grid):
+            if app.Coins >= 25:
+                app.Coins -= 25
+                app.inventory['beer']+=1
+                
+            else:
+                print("No Money")
+            
+            
+        elif (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            if app.Coins >= 25:
+                app.Coins -= 25              
+                app.inventory['dragon']+=1
+            else:
+                print("No Money")
+                
+        elif (event.x>mgn + bigmgn + grid and event.x<mgn + bigmgn + 2*grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            if app.Coins >= 25:
+                app.Coins -= 25
+                app.inventory['taylor']+=1
+                
+            else:
+                print("No Money")
+                
+        elif (event.x>mgn + bigmgn + 2*grid and event.x<mgn + bigmgn + 3*grid and 
+        event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
+            if app.Coins >= 25:
+                app.inventory['kosbie']+=1
+                app.Coins -= 25
+            else:
+                print("No Money")  
 
-    if not app.market and ((app.aquariumL+100< event.x < app.aquariumR -100) and 
+    if not app.dragging and not app.market and ((app.aquariumL+100< event.x < app.aquariumR -100) and 
                 app.aquariumBot + 250 < event.y < app.height):
-        app.dragging = True
-        
+        app.dragging = True  
+        app.currentx, app.currenty = event.x, event.y      
 
 def mouseDragged(app, event):
     if app.dragging:
-        
-        itemIndex = getItem(app, app.currentx, app.currenty)
-        if itemIndex > len(currentList):
-            return
-        app.currentImage = currentList[itemIndex]
+        currentList = []
+        for key in app.inventory:
+            if app.inventory[key] > 0:
+                currentList.append(key)
+        # if (app.aquariumL+100<app.currentx<app.aquariumR-100) and (app.aquariumBot+250<app.currenty<app.height):
+
+        if getItem(app, app.currentx, app.currenty, currentList) != False:
+            app.currentImage = getItem(app, app.currentx, app.currenty, currentList)
+            app.drawDraggedItem = True
         app.draggedItemX, app.draggedItemY = event.x, event.y
 
-# def mouseReleased(app, event):
-#     if app.dragging == True:
-#         app.dragging = False
-#         placeImage(app)
+def mouseReleased(app, event):
+    if app.dragging == True:
+        app.dragging = False
+        placeImage(app)
 
-# def placeImage(app):
-#     app.drawnItems += [(app.draggedItemX, app.draggedItemY, app.currentImage)]
+def placeImage(app):
+    app.drawnItems += [(app.draggedItemX, app.draggedItemY, app.currentImage)]
+    app.drawDraggedItem = False
 
-def getItem(app, x, y):
+def getItem(app, x, y, currentList):
     # aka "viewToModel"
     # return (row, col) in which (x, y) occurred or (-1, -1) if outside grid.
     x0=app.aquariumL+100
@@ -195,13 +259,12 @@ def getItem(app, x, y):
     if (x<x0) or (x>app.aquariumR - 100) or (y<y0):
         return
 
-    currentList = []
-        for key in app.inventory:
-            if app.inventory[key] > 0:
-                currentList.append(key)
+    
     row = int((x - x0) / cellWidth)
-
-    return row
+    if row < len(currentList):
+        return currentList[row]
+    else: 
+        return False
 
 
 def keyPressed(app, event):
@@ -327,7 +390,7 @@ def drawMarketScreen(app, canvas):
     grid = 300
     bigmgn = 175
     bigmgn2 = 125
-    if app.marketPageOne:
+    if app.market and app.marketPageOne:
         canvas.create_rectangle(bigmgn, bigmgn2, 
                                 app.width-bigmgn, app.height-bigmgn2, fill="pink")
         canvas.create_text(app.width/2, bigmgn2 + 50, text="Market", font="arial 50 bold")
@@ -387,9 +450,9 @@ def drawMarketScreen(app, canvas):
                             text="20", font="arial 20 bold")
         ball=PhotoImage(file="ballBig.png")
         canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
-    elif app.marketPageTwo:
+    elif app.market and app.marketPageTwo:
         canvas.create_rectangle(bigmgn, bigmgn2, 
-                                app.width-bigmgn, app.height-bigmgn2, fill="blue")
+                                app.width-bigmgn, app.height-bigmgn2, fill="pink")
         canvas.create_text(app.width/2, bigmgn2 + 50, text="Market", font="arial 50 bold")
         canvas.create_text(app.width/2, bigmgn2 + 100,
                             text="Press 1,2, to switch between pages", font="arial 20 bold")
@@ -397,56 +460,56 @@ def drawMarketScreen(app, canvas):
         canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + 20,
-                            text="Worms", font="arial 20 bold")
+                            text="Log", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid - 20,
                             text="5", font="arial 20 bold")
-        worm=PhotoImage(file="wormBig.png")
-        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=worm)
-        #Taylor
+        log=PhotoImage(file="logBig.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid/2, image=log)
+        #Flag
         canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + 20,
-                            text="Snails", font="arial 20 bold")
+                            text="Flag", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid - 20,
                             text="10", font="arial 20 bold")
-        snail=PhotoImage(file="snailBig.png")
-        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=snail)
-        #Dragon
+        flag=PhotoImage(file="flagBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid/2, image=flag)
+        #Beer
         canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2, 
                                 mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid, fill="white")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + 20,
-                            text="Seaweed", font="arial 20 bold")
+                            text="Beer", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid - 20,
                             text="20", font="arial 20 bold")
-        seaweed=PhotoImage(file="seaweedBig.png")
-        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=seaweed)
-        #Moss Ball
+        beer=PhotoImage(file="beerBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid/2, image=beer)
+        #Dragon
         canvas.create_rectangle(mgn + bigmgn, mgn*2 + bigmgn2 + grid, 
                                 mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid*2, fill="white")
         canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid + 20,
-                            text="Moss Balls", font="arial 20 bold")
+                            text="Dragon", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*2 - 20,
                             text="20", font="arial 20 bold")
-        mossball=PhotoImage(file="mossball.png")
-        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=mossball)
-        #Rez
+        dragon=PhotoImage(file="dragonBig.png")
+        canvas.create_image(mgn + bigmgn + grid/2, mgn*2 + bigmgn2 + grid*1.5, image=dragon)
+        #Taylor
         canvas.create_rectangle(mgn + bigmgn + grid, mgn*2 + bigmgn2 + grid, 
                                 mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
         canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid + 20,
-                            text="Rez on Fifth", font="arial 20 bold")
+                            text="Taylor", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*2 - 20,
                             text="20", font="arial 20 bold")
-        rez=PhotoImage(file="rezBig.png")
-        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=rez)
-        #Ball
+        taylor=PhotoImage(file="taylorBig.png")
+        canvas.create_image(mgn + bigmgn + grid*1.5, mgn*2 + bigmgn2 + grid*1.5, image=taylor)
+        #Kosbie
         canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
                                 mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid + 20,
-                            text="Mystery Ball", font="arial 20 bold")
+                            text="Kosbie", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*2 - 20,
                             text="20", font="arial 20 bold")
-        ball=PhotoImage(file="ballBig.png")
-        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=ball)
+        kosbie=PhotoImage(file="kosbieBig.png")
+        canvas.create_image(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*1.5, image=kosbie)
 
 def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
@@ -482,7 +545,7 @@ def drawKimchee(app, canvas):
 def drawSplashScreen(app, canvas):
     splashScreen=PhotoImage(file='splashscreen.png')
     canvas.create_image(app.width/2, app.height/2, image=splashScreen)
-    # canvas.create_text(app.width/2, )  
+    canvas.create_text(app.width-400,app.height/2+50, text='Press space to begin!',font='arial 30 bold')  
 
 def drawEggScreen(app, canvas):
     canvas.create_rectangle(0,0,app.width, app.height, fill="white")
@@ -524,13 +587,13 @@ def drawButtons(app, canvas):
         marketButton=PhotoImage(file='market.png')
     canvas.create_image(app.marketX, app.marketY, image=marketButton)
 
-def drawFood(app, canvas):
-    if app.market:
-        WormPicture=PhotoImage(file="Worm.png")
-        canvas.create_image(app.wormX-50, app.wormY, image=WormPicture)
-    if app.market:
-        SnailPicture=PhotoImage(file="Snail.png")
-        canvas.create_image(app.snailX+50, app.snailY, image=SnailPicture)
+# def drawFood(app, canvas):
+#     if app.market:
+#         WormPicture=PhotoImage(file="Worm.png")
+#         canvas.create_image(app.wormX-50, app.wormY, image=WormPicture)
+#     if app.market:
+#         SnailPicture=PhotoImage(file="Snail.png")
+#         canvas.create_image(app.snailX+50, app.snailY, image=SnailPicture)
     
 def drawHelpButton(app, canvas):
     cx, cy = app.width - 50, app.height - 50
@@ -560,9 +623,21 @@ def drawInventory(app, canvas):
             index+=1
 
 def drawDraggedItem(app, canvas):
-    icon=PhotoImage(file=f'wormsInventory.png')
-    canvas.create_image(app.draggedItemX, app.draggedItemY, image=icon)
+    if app.currentImage=='worms' or 'snail':
+        icon=PhotoImage(file=f'{app.currentImage}Inventory.png')
+        canvas.create_image(app.draggedItemX, app.draggedItemY, image=icon)
+    elif app.currentImage=='seaweed':
+        icon=PhotoImage(file=f'seaweed1l.png')
+        canvas.create_image(app.draggedItemX, app.draggedItemY, image=icon)
+    else:
+        icon=PhotoImage(file=f'{app.currentImage}.png')
+        canvas.create_image(app.draggedItemX, app.draggedItemY, image=icon)
 
+def drawDrawnItems(app, canvas):
+    for x,y,item in app.drawnItems:
+        icon=PhotoImage(file=f'{item}.png')
+        canvas.create_image(x,y, image=icon)
+    
 def redrawAll(app, canvas):
     if app.gameStarted:
         drawBackground(app, canvas)
@@ -580,9 +655,9 @@ def redrawAll(app, canvas):
         
         drawStats(app, canvas)
         drawButtons(app, canvas)
-        drawFood(app,canvas)
-        if app.dragging:
-            drawDraggedItem(app,canvas)
+        if app.drawDraggedItem:
+             drawDraggedItem(app,canvas)
+        drawDrawnItems(app,canvas)
 
     if not app.gameStarted:
         drawSplashScreen(app, canvas)
