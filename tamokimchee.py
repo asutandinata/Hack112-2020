@@ -161,55 +161,56 @@ def placeCoin(app):
     
 def timerFired(app):
     #seaweed sprite animation
-    if(app.time%500==0 and app.hunger>0):app.hunger-=1
-    app.time+=app.timerDelay
-    app.timeSincePlay+=app.timerDelay
-    app.coinTime+=app.timerDelay
-    if(app.coinTime==app.coinSearchTime):
-        placeCoin(app)
-    if(distance(app.kimcheeX, app.kimcheeY, app.coinX, app.coinY)<30): 
-        app.coins+=1
-        app.coinTime=0
-        placeCoin(app)
-    if(app.time==app.growThreshold):
-        app.size+=1
-        app.time-=app.growThreshold
-        if(app.size>2):
-            app.size=2
+    if not app.market:
+        if(app.time%1000==0 and app.hunger>0):app.hunger-=1
+        app.time+=app.timerDelay
+        app.timeSincePlay+=app.timerDelay
+        app.coinTime+=app.timerDelay
+        if(app.coinTime==app.coinSearchTime):
+            placeCoin(app)
+        if(distance(app.kimcheeX, app.kimcheeY, app.coinX, app.coinY)<30): 
+            app.coins+=1
+            app.coinTime=0
+            placeCoin(app)
+        if(app.time==app.growThreshold):
+            app.size+=1
+            app.time-=app.growThreshold
+            if(app.size>2):
+                app.size=2
 
-    if app.timeSincePlay==app.timeBored:
-        if(app.happiness>0):app.happiness-=1
-        app.newX, app.newY = random.randint(app.aquariumL, app.aquariumR), random.randint(app.aquariumBot-500,app.aquariumBot)
-        app.timeSincePlay=0
-        app.moving = not app.moving
-        if app.newX > app.kimcheeX: 
-            app.movingDirection = "r"
-        else: 
-            app.movingDirection = "l"
-    updateBubbles(app)
-    for n in range(len(app.seaweed)):
-        x,y,i,s = app.seaweed[n]
-        i+=1
-        if i>3:
-            i=1
-        app.seaweed[n]=(x,y,i,s)
+        if app.timeSincePlay==app.timeBored:
+            if(app.happiness>0):app.happiness-=1
+            app.newX, app.newY = random.randint(app.aquariumL, app.aquariumR), random.randint(app.aquariumBot-500,app.aquariumBot)
+            app.timeSincePlay=0
+            app.moving = not app.moving
+            if app.newX > app.kimcheeX: 
+                app.movingDirection = "r"
+            else: 
+                app.movingDirection = "l"
+        updateBubbles(app)
+        for n in range(len(app.seaweed)):
+            x,y,i,s = app.seaweed[n]
+            i+=1
+            if i>3:
+                i=1
+            app.seaweed[n]=(x,y,i,s)
 
-    #bouncing up and down
-    if not app.moving:
-        if app.kimcheeToggle:
-            app.kimcheeY += 5
-            app.kimcheeToggle = not app.kimcheeToggle
+        #bouncing up and down
+        if not app.moving:
+            if app.kimcheeToggle:
+                app.kimcheeY += 5
+                app.kimcheeToggle = not app.kimcheeToggle
+            else:
+                app.kimcheeY -= 5
+                app.kimcheeToggle = not app.kimcheeToggle
+
+        #moving kimchee
+        if app.moving and distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) > 25:
+            app.kimcheei += 1
+            app.kimcheei %= len(app.swimAnimations)
+            moveKimchee(app)
         else:
-            app.kimcheeY -= 5
-            app.kimcheeToggle = not app.kimcheeToggle
-
-    #moving kimchee
-    if app.moving and distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) > 25:
-        app.kimcheei += 1
-        app.kimcheei %= len(app.swimAnimations)
-        moveKimchee(app)
-    else:
-        app.moving = False
+            app.moving = False
     
 
 def moveKimchee(app):
@@ -404,6 +405,7 @@ def drawCoin(app, canvas):
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawDynamicAquarium(app, canvas)
+    drawCoin(app, canvas)
     # drawKimchee(app, canvas) 
     if not app.moving:
         drawKimchee(app, canvas)
@@ -421,7 +423,7 @@ def redrawAll(app, canvas):
     drawStats(app, canvas)
     drawButtons(app, canvas)
     drawFood(app,canvas)
-    drawCoin(app, canvas)
+    
     if not app.gameStarted:
         drawSplashScreen(app, canvas)
         if app.eggScreenVisible:
