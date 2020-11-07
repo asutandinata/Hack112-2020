@@ -4,6 +4,7 @@ import random
 # from dataclasses import make_dataclass
 
 def appStarted(app):
+    
     app.aquariumL=120
     app.aquariumR=app.width-120
     app.aquariumBot=app.height-350
@@ -19,79 +20,97 @@ def appStarted(app):
     app.maxHappiness=10
     app.shiftMarginPositive = [10 + 5*i for i in range(9)]
     app.shiftMarginNegative = [-10 - 5*i for i in range(9)]
-
+    app.marketWidth=150
+    app.marketHeight=75
+    app.marketX, app.marketY=app.width-100, 80
     #moving
+    app.newX, app.newY = 0, 0
     app.swimAnimations = [1,2,3,2]
     app.kimcheei = 0
-    app.moving = True
+    app.moving = False
+    app.movingDirection = None
     app.timerDelay=10
+    app.market = False
+    app.wormX, app.wormY = app.width/2, app.height/2
+    app.snailX, app.snailY = app.width/2, app.height/2
+
 def resetAxolotlStats(app):
     app.hunger=10
     app.age=0
     app.happiness=8
-    
 
 def mousePressed(app, event):
-    return
+    if (event.x>app.marketX-(app.marketWidth/2) and event.x<(app.marketX+app.marketWidth/2)
+    and event.y>(app.marketY-app.marketHeight/2) and event.y<(app.marketY+app.marketHeight/2)):
+        app.market= not app.market
+    
+    if (app.aquariumL<event.x<app.aquariumR and 100<event.y<app.aquariumBot):
+        if not app.moving:
+            app.newX, app.newY = event.x, event.y
+            app.moving = True
 
-def keyPressed(app, event):
-    if event.key == "Left":
-        app.moving = True
-        app.kimcheeX -= 10
+# def keyPressed(app, event):
+    # if event.key == "Left":
+    #     app.moving = True
+    #     app.kimcheeX -= 10
 
-    elif event.key == "Right":
-        app.moving = True
-        app.kimcheeX+=10
+    # elif event.key == "Right":
+    #     app.moving = True
+    #     app.kimcheeX+=10
 
 
-def keyReleased(app, event):
-    app.moving = False
+# def keyReleased(app, event):
+#     app.moving = False
 
 def timerFired(app):
     #seaweed sprite animation
     updateBubbles(app)
     for n in range(len(app.seaweed)):
-        x,y,i,s=app.seaweed[n]
+        x,y,i,s = app.seaweed[n]
         i+=1
         if i>3:
             i=1
         app.seaweed[n]=(x,y,i,s)
-    if app.moving:
+
+    #moving kimchee
+    if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) > 10:
         app.kimcheei += 1
         app.kimcheei %= len(app.swimAnimations)
-    return
+        moveKimchee(app)
+    else:
+        app.moving = False
 
-def moveKimchee(app, dx):
-    app.kimcheeX += dx*10
+def moveKimchee(app):
+    if app.newX > app.kimcheeX: 
+        dx = 1
+        app.movingDirection = "l"
+    else: 
+        dx = -1
+        app.movingDirection = "r"
+    if app.newY > app.kimcheeY: dy = 1
+    else: dy = -1
+    app.kimcheeX += dx*10 
+    app.kimcheeY += dy*10 
+    if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) < 10:
+        app.kimcheeX = app.newX 
+        app.kimcheeY = app.newY
     
-    return
+def distance(x0, y0, x1, y1):
+    return ((x1-x0)**2+(y1-y0)**2)**(0.5)
     
 def updateBubbles(app):
     while len(app.bubbles) < 5:
-        bubbleX = random.randint(250, 1150)
+        bubbleX = random.randint(100, 1300)
         bubbleY = random.randint(600, 750)
         app.bubbles.append([bubbleX, bubbleY, 1])
     index =  0
     while index < len(app.bubbles):
         bubble = app.bubbles[index]
-        if bubble[1] <= 400:
+        if bubble[1] <= 400 or bubble[0] < 75 or bubble[0] >= 1325:
             app.bubbles.pop(index)
         else:
-            if len(app.shiftMarginPositive) == 0:
-                app.shiftMarginPositive == [10 + 5*i for i in range(9)]
-            if len(app.shiftMarginNegative) == 0:
-                app.shiftMarginNegative == [-10 - 5*i for i in range(9)]
-            if bubble[2] == 1:
-                # upperLimit = len(app.shiftMarginPositive)
-                # index2 = random.randint(0, upperLimit)
-                # bubble[0] += app.shiftMarginPositive.pop(index2)
-                bubble[1] -= 25
-            elif bubble[2] == -1:
-                # upperLimit = len(app.shiftMarginNegative)
-                # index2 = random.randint(0, upperLimit)
-                # bubble[0] += app.shiftMarginNegative.pop(index2)
-                bubble[1] -= 25
-            bubble[2] *= -1
+            bubble[0] += random.randint(-50,50)
+            bubble[1] -= random.randint(10,30)
         index+=1
 
 ###############################################################################
@@ -112,7 +131,7 @@ def drawDynamicAquarium(app, canvas):
     for index in range(len(app.bubbles)):
         bubble = app.bubbles[index]
         x, y = bubble[0], bubble[1]
-        if y <= 400:
+        if y <= 400 or x < 75 or x >= 1325:
             pass
         elif y <= 500 and y > 400:
             bubbleImage=PhotoImage(file='BubbleLarge.png')
@@ -126,8 +145,9 @@ def drawDynamicAquarium(app, canvas):
 
 def drawSwimmingKimchee(app, canvas):
     i = app.swimAnimations[app.kimcheei]
-    swimchee=PhotoImage(file=f"swim{i}.png") 
-    canvas.create_image(app.width/2, app.height/2, image=swimchee)
+    d = app.movingDirection
+    swimchee=PhotoImage(file=f"swim{i}{d}.png") 
+    canvas.create_image(app.kimcheeX, app.kimcheeY, image=swimchee)
     
 def drawKimcheeSmall(app, canvas):
     kimcheeSmall=PhotoImage(file="axolotlSmall.png") 
@@ -162,7 +182,20 @@ def drawStats(app, canvas):
     for i in range(app.maxHappiness-app.happiness):
         x1=width*app.happiness+x0*1
         empty=PhotoImage(file="sad.png")
-        canvas.create_image(x1+(i*width), y1+width/2, image=empty)       
+        canvas.create_image(x1+(i*width), y1+width/2, image=empty) 
+
+def drawButtons(app, canvas):
+    if app.market:
+        marketButton=PhotoImage(file='exit.png')
+    else:
+        marketButton=PhotoImage(file='market.png')
+    canvas.create_image(app.marketX, app.marketY, image=marketButton)
+
+def drawFood(app, canvas):
+    WormPicture=PhotoImage(file="Worm.png")
+    canvas.create_image(app.wormX, app.wormY, image=WormPicture)
+    SnailPicture=PhotoImage(file="Snail.png")
+    canvas.create_image(app.snailX, app.snailY, image=SnailPicture)
 
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
@@ -174,5 +207,7 @@ def redrawAll(app, canvas):
     drawKimcheeMedium(app, canvas) 
     drawKimcheeLarge(app, canvas) 
     drawStats(app, canvas)
+    drawButtons(app, canvas)
+    drawFood(app,canvas)
     
 runApp(width=1400, height=1000)
