@@ -19,7 +19,12 @@ def appStarted(app):
     app.maxHappiness=10
     app.shiftMarginPositive = [10 + 5*i for i in range(9)]
     app.shiftMarginNegative = [-10 - 5*i for i in range(9)]
-    
+
+    #moving
+    app.swimAnimations = [1,2,3,2]
+    app.kimcheei = 0
+    app.moving = True
+    app.timerDelay=10
 def resetAxolotlStats(app):
     app.hunger=10
     app.age=0
@@ -30,8 +35,17 @@ def mousePressed(app, event):
     return
 
 def keyPressed(app, event):
-    
-    return
+    if event.key == "Left":
+        app.moving = True
+        app.kimcheeX -= 10
+
+    elif event.key == "Right":
+        app.moving = True
+        app.kimcheeX+=10
+
+
+def keyReleased(app, event):
+    app.moving = False
 
 def timerFired(app):
     #seaweed sprite animation
@@ -42,7 +56,43 @@ def timerFired(app):
         if i>3:
             i=1
         app.seaweed[n]=(x,y,i,s)
+    if app.moving:
+        app.kimcheei += 1
+        app.kimcheei %= len(app.swimAnimations)
     return
+
+def moveKimchee(app, dx):
+    app.kimcheeX += dx*10
+    
+    return
+    
+def updateBubbles(app):
+    while len(app.bubbles) < 5:
+        bubbleX = random.randint(250, 1150)
+        bubbleY = random.randint(600, 750)
+        app.bubbles.append([bubbleX, bubbleY, 1])
+    index =  0
+    while index < len(app.bubbles):
+        bubble = app.bubbles[index]
+        if bubble[1] <= 400:
+            app.bubbles.pop(index)
+        else:
+            if len(app.shiftMarginPositive) == 0:
+                app.shiftMarginPositive == [10 + 5*i for i in range(9)]
+            if len(app.shiftMarginNegative) == 0:
+                app.shiftMarginNegative == [-10 - 5*i for i in range(9)]
+            if bubble[2] == 1:
+                # upperLimit = len(app.shiftMarginPositive)
+                # index2 = random.randint(0, upperLimit)
+                # bubble[0] += app.shiftMarginPositive.pop(index2)
+                bubble[1] -= 25
+            elif bubble[2] == -1:
+                # upperLimit = len(app.shiftMarginNegative)
+                # index2 = random.randint(0, upperLimit)
+                # bubble[0] += app.shiftMarginNegative.pop(index2)
+                bubble[1] -= 25
+            bubble[2] *= -1
+        index+=1
 
 ###############################################################################
 #VIEW
@@ -59,42 +109,25 @@ def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
             seaweed=PhotoImage(file=f"seaweed{i}{l}.png")
             canvas.create_image(x,y,image=seaweed)
-    for index in range(len(app.bubbles) - 1):
+    for index in range(len(app.bubbles)):
         bubble = app.bubbles[index]
         x, y = bubble[0], bubble[1]
-        if y >= 750:
-            app.bubbles.pop(index)
-        elif y >= 500 and y < 750:
+        if y <= 400:
+            pass
+        elif y <= 500 and y > 400:
             bubbleImage=PhotoImage(file='BubbleLarge.png')
             canvas.create_image(x,y,image=bubbleImage)
-        elif y >= 250 and y < 500:
+        elif y <= 600 and y > 500:
             bubbleImage=PhotoImage(file="BubbleMedium.png")
             canvas.create_image(x,y,image=bubbleImage)
         else:
             bubbleImage=PhotoImage(file="BubbleSmall.png")
             canvas.create_image(x,y,image=bubbleImage)
-    
-def updateBubbles(app):
-    while len(app.bubbles) < 5:
-        bubbleX = random.randint(300, 1100)
-        bubbleY = random.randint(700, 850)
-        app.bubbles.append([bubbleX, bubbleY, 1])
-    for bubble in app.bubbles:
-        if len(app.shiftMarginPositive) == 0:
-           app.shiftMarginPositive == [10 + 5*i for i in range(9)]
-        if len(app.shiftMarginNegative) == 0:
-           app.shiftMarginNegative == [-10 - 5*i for i in range(9)]
-        if bubble[2] == 1:
-           upperLimit = len(app.shiftMarginPositive) - 1
-           index = random.randint(0, upperLimit)
-           bubble[0] += app.shiftMarginPositive.pop(index)
-           bubble[1] -= 1
-        else:
-           upperLimit = len(app.shiftMarginNegative) - 1
-           index = random.randint(0, upperLimit)
-           bubble[0] += app.shiftMarginNegative.pop(index)
-           bubble[1] -= 1
-        bubble[2] *= -1
+
+def drawSwimmingKimchee(app, canvas):
+    i = app.swimAnimations[app.kimcheei]
+    swimchee=PhotoImage(file=f"swim{i}.png") 
+    canvas.create_image(app.width/2, app.height/2, image=swimchee)
     
 def drawKimcheeSmall(app, canvas):
     kimcheeSmall=PhotoImage(file="axolotlSmall.png") 
@@ -108,7 +141,6 @@ def drawKimcheeLarge(app, canvas):
     kimcheeLarge=PhotoImage(file="axolotlLarge.png") 
     canvas.create_image(app.width/2 + 400, app.height/2, image=kimcheeLarge)
 
- 
 
 def drawStats(app, canvas):
     x0,y0=150,10
@@ -136,6 +168,8 @@ def redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawDynamicAquarium(app, canvas)
     # drawKimchee(app, canvas)  
+    if app.moving:
+        drawSwimmingKimchee(app, canvas)
     drawKimcheeSmall(app, canvas)  
     drawKimcheeMedium(app, canvas) 
     drawKimcheeLarge(app, canvas) 
