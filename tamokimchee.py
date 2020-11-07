@@ -10,9 +10,9 @@ def appStarted(app):
     app.kimcheeX = app.width/2
     app.kimcheeY = app.height/2
     app.kimcheeSize = None
-    app.seaweed=[(app.aquariumL+100, app.aquariumBot-40,1,'l'), (app.aquariumR-50, app.aquariumBot,2,'s')]
+    app.seaweed=[(app.aquariumL+100, app.aquariumBot-40,1,'l'), 
+                 (app.aquariumR-50, app.aquariumBot,2,'s')]
     app.bubbles=[]
-    app.bubbleDy=20
     resetAxolotlStats(app)
     app.barWidth=50
     app.maxHunger=10
@@ -35,6 +35,7 @@ def keyPressed(app, event):
 
 def timerFired(app):
     #seaweed sprite animation
+    updateBubbles(app)
     for n in range(len(app.seaweed)):
         x,y,i,s=app.seaweed[n]
         i+=1
@@ -58,18 +59,20 @@ def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
             seaweed=PhotoImage(file=f"seaweed{i}{l}.png")
             canvas.create_image(x,y,image=seaweed)
-    for index in range(len(app.bubbles)):
+    for index in range(len(app.bubbles) - 1):
         bubble = app.bubbles[index]
         x, y = bubble[0], bubble[1]
-        if y > 0 and y < 250:
-            bubble=PhotoImage(file=BubbleSmall.png)
-        elif y >= 250 and y < 500:
-            bubble=PhotoImage(file=BubbleMedium.png)
-        elif y >= 500 and y < 750:
-            bubble=PhotoImage(file=BubbleLarge.png)
-        elif y >= 750:
+        if y >= 750:
             app.bubbles.pop(index)
-        canvas.create_image(x,y,image=bubble)
+        elif y >= 500 and y < 750:
+            bubbleImage=PhotoImage(file='BubbleLarge.png')
+            canvas.create_image(x,y,image=bubbleImage)
+        elif y >= 250 and y < 500:
+            bubbleImage=PhotoImage(file="BubbleMedium.png")
+            canvas.create_image(x,y,image=bubbleImage)
+        else:
+            bubbleImage=PhotoImage(file="BubbleSmall.png")
+            canvas.create_image(x,y,image=bubbleImage)
     
 def updateBubbles(app):
     while len(app.bubbles) < 5:
@@ -85,12 +88,12 @@ def updateBubbles(app):
            upperLimit = len(app.shiftMarginPositive) - 1
            index = random.randint(0, upperLimit)
            bubble[0] += app.shiftMarginPositive.pop(index)
-           bubble[1] += 1
+           bubble[1] -= 1
         else:
            upperLimit = len(app.shiftMarginNegative) - 1
            index = random.randint(0, upperLimit)
            bubble[0] += app.shiftMarginNegative.pop(index)
-           bubble[1] += 1
+           bubble[1] -= 1
         bubble[2] *= -1
     
 def drawKimcheeSmall(app, canvas):
@@ -110,7 +113,7 @@ def drawKimcheeLarge(app, canvas):
 def drawStats(app, canvas):
     x0,y0=150,10
     width=app.barWidth
-    canvas.create_text(x0-30, y0+(width/2), text='Hunger: ',font='arial 18 bold',anchor='e')
+    canvas.create_text(x0-30, y0+(width/2), text='Hunger: ',font='arial 16 bold',anchor='e')
     for i in range(app.hunger):
         hunger=PhotoImage(file="hunger.png")
         canvas.create_image(x0+i*width, y0+width/2, image=hunger)
@@ -120,18 +123,17 @@ def drawStats(app, canvas):
         canvas.create_image(x1+i*width, y0+width/2, image=empty)
     
     y1=y0+width
-    canvas.create_text(x0-30, y1+width/2, text='Happiness: ',font='arial 18 bold',anchor='e')
+    canvas.create_text(x0-30, y1+width/2, text='Happiness: ',font='arial 16 bold',anchor='e')
     for i in range(app.happiness):
         happy=PhotoImage(file="happy.png")
         canvas.create_image(x0+(i*width), y1+width/2, image=happy)
-    for i in range(app.maxHappiness-app.happiness+1):
+    for i in range(app.maxHappiness-app.happiness):
         x1=width*app.happiness+x0*1
         empty=PhotoImage(file="sad.png")
         canvas.create_image(x1+(i*width), y1+width/2, image=empty)       
 
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
-    updateBubbles(app)
     drawDynamicAquarium(app, canvas)
     # drawKimchee(app, canvas)  
     drawKimcheeSmall(app, canvas)  
