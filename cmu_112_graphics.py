@@ -5,6 +5,7 @@
 
 # Require Python 3.6 or later
 import sys
+import winsound
 if ((sys.version_info[0] != 3) or (sys.version_info[1] < 6)):
     raise Exception('cmu_112_graphics.py requires Python version 3.6 or later.')
 
@@ -613,6 +614,7 @@ class App(object):
         root.mainloop()
         app._hideRootWindow()
         app._running = False
+        winsound.PlaySound(None, winsound.SND_PURGE)
         for afterId in app._afterIdMap: app._root.after_cancel(app._afterIdMap[afterId])
         app._afterIdMap.clear() # for safety
         app.appStopped()

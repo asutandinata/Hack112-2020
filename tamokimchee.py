@@ -2,11 +2,12 @@ from cmu_112_graphics import *
 import random
 from PIL import Image
 from playsound import playsound
-# from dataclasses import make_dataclass
+import winsound
+import time
+import math
 
 def appStarted(app):
     app.gameStarted = False
-  
     app.aquariumL=120
     app.aquariumR=app.width-120
     app.aquariumBot=app.height-350
@@ -60,7 +61,6 @@ def appStarted(app):
     app.timeBored=1000
     app.marketPageOne = True
     app.marketPageTwo = False 
-
     #help
     app.helpx, app.helpy = app.width - 50, app.height - 50
     app.helpVisible = False
@@ -79,12 +79,15 @@ def appStarted(app):
     app.dragging = False
     app.drawDraggedItem = False
 
+    app.startTime = None
+    app.bgm = False
+
 def resetAxolotlStats(app):
     app.hunger=8
     app.size=0
-    app.happiness=5
+    app.happiness=2
     app.time=0
-    app.growThreshold=1000
+    app.growThreshold=2000
     app.gameOver=False
 
 def mousePressed(app, event):
@@ -202,7 +205,6 @@ def mousePressed(app, event):
             else:
                 print("No Money")
             
-            
         elif (event.x>mgn + bigmgn and event.x<mgn + bigmgn + grid and 
         event.y>bigmgn2 + grid and event.y<mgn*2 + bigmgn2 + grid*2):
             if app.Coins >= 25:
@@ -250,6 +252,9 @@ def mouseReleased(app, event):
     if app.dragging == True:
         app.dragging = False
         placeImage(app)
+        
+        #playsound("thud noise.mp3")
+        winsound.Beep(50, 100)
 
 def placeImage(app):
     if (app.aquariumL<app.draggedItemX<app.aquariumR) and (250<app.draggedItemY<app.aquariumBot+50):        
@@ -262,8 +267,8 @@ def placeImage(app):
     app.drawDraggedItem = False    
 
 def getItem(app, x, y, currentList):
-    x0=app.aquariumL+100-40
-    y0=app.aquariumBot
+    x0=app.aquariumL+60
+    y0=app.aquariumBot + 150
 
     cellWidth  = 80
 
@@ -287,6 +292,8 @@ def keyPressed(app, event):
         elif event.key == "2":
             app.marketPageOne = False
             app.marketPageTwo = True
+    if event.key=='r' and app.gameOver:
+        appStarted(app)
     
 def hatchEgg(app):
     if app.eggCounter > 11:
@@ -297,12 +304,22 @@ def hatchEgg(app):
 def placeCoin(app):
     app.coinX=random.randint(app.aquariumL, app.aquariumR)
     app.coinY=random.randint(app.aquariumBot-400,app.aquariumBot)
+
+def checkBGM(app):
+    currentTime = time.time()
+    if (app.startTime != None) and (currentTime - app.startTime > 127):
+        app.bgm = not app.bgm
     
 def timerFired(app):
     #seaweed sprite animation
-    
+    if not app.bgm: 
+        #winsound.PlaySound("bgmtest.wav", winsound.SND_ASYNC | winsound.SND_ALIAS )  
+        app.bgm = not app.bgm
+        app.startTime = time.time()
+    checkBGM(app) 
     if not app.market:
         checkFeed(app)
+        floatDown(app)
         if(app.time%1000==0 and app.hunger>0):app.hunger-=1
         app.time+=app.timerDelay
         app.timeSincePlay+=app.timerDelay
@@ -335,7 +352,7 @@ def timerFired(app):
             if i>3:
                 i=1
             app.seaweed[n]=(x,y,i,s)
-        if app.hunger==0 or app.happiness==0:
+        if app.hunger<=0 or app.happiness<=0:
             app.gameOver=True
 
 
@@ -355,7 +372,20 @@ def timerFired(app):
             moveKimchee(app)
         else:
             app.moving = False
-    
+        if app.hunger==0 or app.happiness==0:
+            app.gameOver=True
+def floatDown(app):
+    for i in range(len(app.drawnItems)):
+        x,y,item=app.drawnItems[i]
+        if item=='log':
+            if y<app.aquariumBot+30*math.sin(x)-50:
+                y+=1
+                app.drawnItems[i]=x,y,item
+        else:
+            if y<app.aquariumBot+30*math.sin(x)-10:
+                y+=1
+                app.drawnItems[i]=x,y,item
+
 def checkFeed(app):
     i=0
     while i<len(app.drawnItems):
@@ -365,12 +395,13 @@ def checkFeed(app):
             if item=='snails':
                 app.hunger+=3
             elif item=="worms":
-                app.hunger+=2
+                app.hunger+=2 
             else:
                 app.hunger +=1
                 app.happiness -=2
             if app.happiness>app.maxHappiness:
                 app.happiness=app.maxHappiness
+            #playsound("eating noises.mp3")
             app.drawnItems.pop(i)
         else:
             i+=1
@@ -477,7 +508,7 @@ def drawMarketScreen(app, canvas):
         canvas.create_rectangle(mgn + bigmgn + 2*grid, mgn*2 + bigmgn2 + grid, 
                                 mgn + bigmgn + 3*grid, mgn*2 + bigmgn2 + grid*2, fill="white")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid + 20,
-                            text="Mystery Ball", font="arial 20 bold")
+                            text="Ball", font="arial 20 bold")
         canvas.create_text(mgn + bigmgn + grid*2.5, mgn*2 + bigmgn2 + grid*2 - 20,
                             text="25", font="arial 20 bold")
         ball=PhotoImage(file="ballBig.png")
@@ -569,11 +600,10 @@ def drawSwimmingKimchee(app, canvas):
     swimchee=PhotoImage(file=f"{size}swim{i}{d}.png") 
     canvas.create_image(app.kimcheeX, app.kimcheeY, image=swimchee)
 
-
 def drawSplashScreen(app, canvas):
     splashScreen=PhotoImage(file='splashscreen.png')
     canvas.create_image(app.width/2, app.height/2, image=splashScreen)
-    canvas.create_text(app.width-400,app.height/2+100, text='Press space to begin!',font='arial 30 bold')  
+    canvas.create_text(app.width-400,app.height/2+300, text='Press space to begin!',font='arial 30 bold')  
 
 def drawEggScreen(app, canvas):
     canvas.create_rectangle(0,0,app.width, app.height, fill="white")
@@ -644,6 +674,12 @@ def drawInventory(app, canvas):
             else:
                 canvas.create_text(x0+80*index, y0+40, text=str(number), font='arial 12 bold')
             index+=1
+            
+def drawGameOver(app, canvas):
+    if app.gameOver:
+        splash=PhotoImage(file='gameOver.png')
+        canvas.create_image(app.width/2, app.height/2, image=splash)
+        canvas.create_text(app.width*(5/6),app.height*(5/6)+75,font='arial 24 bold', text="Press r to restart!")
 
 def drawDraggedItem(app, canvas):
     if app.currentImage=='seaweed':
@@ -691,7 +727,11 @@ def redrawAll(app, canvas):
     drawHelpButton(app, canvas)
     if app.helpVisible:
         drawHelp(app,canvas)
-    
+    drawGameOver(app, canvas)
 
-#
+def closeEvent(self, event):
+    print(":D")
+    winsound.PlaySound(None, winsound.SND_PURGE)
+
+
 runApp(width=1400, height=1000)
