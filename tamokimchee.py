@@ -24,7 +24,7 @@ def appStarted(app):
     app.marketHeight=75
     app.marketX, app.marketY=app.width-100, 80
     #moving
-    app.newX, app.newY = 0, 0
+    app.newX, app.newY = app.kimcheeX, app.kimcheeY
     app.swimAnimations = [1,2,3,2]
     app.kimcheeSizes = ["s", "m", "l"]
     app.kimcheei = 0
@@ -35,37 +35,44 @@ def appStarted(app):
     app.wormX, app.wormY = app.width/2, app.height/2
     app.snailX, app.snailY = app.width/2, app.height/2
     app.kimcheeToggle = True
+    
+    #egg
+    app.eggCounter = 0
+
+    Amount_of_Worms = 0
+    Amount_of_Snails = 0
+    
 
 def resetAxolotlStats(app):
-    app.hunger=10
-    app.age=0
-    app.happiness=8
-
+    app.hunger=6
+    app.size=0
+    app.happiness=3
+    app.time=0
+    app.growThreshold=1000
 def mousePressed(app, event):
     if (event.x>app.marketX-(app.marketWidth/2) and event.x<(app.marketX+app.marketWidth/2)
     and event.y>(app.marketY-app.marketHeight/2) and event.y<(app.marketY+app.marketHeight/2)):
         app.market= not app.market
     
-    if (app.aquariumL<event.x<app.aquariumR and 100<event.y<app.aquariumBot):
-        if not app.moving:
+    if (app.aquariumL<event.x<app.aquariumR and 100<event.y<app.aquariumBot) and not app.moving:
             app.newX, app.newY = event.x, event.y
-            app.moving = True
+            
+            app.moving = not app.moving
+            if app.newX > app.kimcheeX: 
+                app.movingDirection = "r"
+            else: 
+                app.movingDirection = "l"
 
-# def keyPressed(app, event):
-    # if event.key == "Left":
-    #     app.moving = True
-    #     app.kimcheeX -= 10
-
-    # elif event.key == "Right":
-    #     app.moving = True
-    #     app.kimcheeX+=10
-
-
-# def keyReleased(app, event):
-#     app.moving = False
 
 def timerFired(app):
     #seaweed sprite animation
+    if(app.time%500==0 and app.hunger>0):app.hunger-=1
+    app.time+=app.timerDelay
+    if(app.time==app.growThreshold):
+        app.size+=1
+        app.time-=app.growThreshold
+        if(app.size>2):
+            app.size=2
     updateBubbles(app)
     for n in range(len(app.seaweed)):
         x,y,i,s = app.seaweed[n]
@@ -74,14 +81,6 @@ def timerFired(app):
             i=1
         app.seaweed[n]=(x,y,i,s)
 
-    #moving kimchee
-    if (app.kimcheeX != app.newX) and (app.kimcheeY != app.newY):
-        app.kimcheei += 1
-        app.kimcheei %= len(app.swimAnimations)
-        moveKimchee(app)
-    else:
-        app.moving = False
-    
     #bouncing up and down
     if not app.moving:
         if app.kimcheeToggle:
@@ -91,13 +90,20 @@ def timerFired(app):
             app.kimcheeY -= 5
             app.kimcheeToggle = not app.kimcheeToggle
 
+    #moving kimchee
+    if app.moving and distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) > 25:
+        app.kimcheei += 1
+        app.kimcheei %= len(app.swimAnimations)
+        moveKimchee(app)
+    else:
+        app.moving = False
+    
+
 def moveKimchee(app):
     if app.newX > app.kimcheeX: 
         dx = 1
-        app.movingDirection = "r"
     else: 
         dx = -1
-        app.movingDirection = "l"
     if app.newY > app.kimcheeY: dy = 1
     else: dy = -1
     app.kimcheeX += dx*10 
@@ -105,6 +111,7 @@ def moveKimchee(app):
     if distance(app.kimcheeX, app.kimcheeY, app.newX, app.newY) < 20:
         app.kimcheeX = app.newX 
         app.kimcheeY = app.newY
+        if(app.happiness<app.maxHappiness):app.happiness+=1
     
 def distance(x0, y0, x1, y1):
     return ((x1-x0)**2+(y1-y0)**2)**(0.5)
@@ -133,7 +140,21 @@ def drawBackground(app, canvas):
     aquarium=PhotoImage(file='aquarium.png')
     canvas.create_image(app.width/2, app.height/2, image=aquarium)  
 
-
+def drawMarketScreen(app, canvas):
+    mgn = 75
+    grid = 300
+    bigmgn = 175
+    bigmgn2 = 125
+    canvas.create_rectangle(bigmgn, bigmgn2, 
+                            app.width-bigmgn, app.height-bigmgn2)
+    canvas.create_rectangle(mgn, mgn*2, mgn + grid, mgn*2 +grid)
+    canvas.create_rectangle(mgn + grid, mgn*2, mgn + 2*grid, mgn*2 + grid)
+    canvas.create_rectangle(mgn + 2*grid, mgn*2, mgn + 3*grid, mgn*2 + grid)
+    canvas.create_rectangle(mgn, mgn*2 + grid, mgn + grid, mgn*2 + grid*2)
+    canvas.create_rectangle(mgn + grid, mgn*2 + grid, 
+                              mgn + 2*grid, mgn*2 + grid*2)
+    canvas.create_rectangle(mgn + 2*grid, mgn*2 + grid, 
+                              mgn + 3*grid, mgn*2 + grid*2)
 
 def drawDynamicAquarium(app, canvas):
     for x,y,i,l in app.seaweed:
@@ -178,6 +199,8 @@ def drawKimchee(app, canvas):
 #     kimcheeLarge=PhotoImage(file="axolotlLarge.png") 
 #     canvas.create_image(app.width/2 + 400, app.height/2, image=kimcheeLarge)
 
+def drawSplashScreen(app, canvas):
+    pass
 
 def drawStats(app, canvas):
     x0,y0=150,10
@@ -209,21 +232,27 @@ def drawButtons(app, canvas):
     canvas.create_image(app.marketX, app.marketY, image=marketButton)
 
 def drawFood(app, canvas):
+    WormPicture=PhotoImage(file="Worm.png")
+    SnailPicture=PhotoImage(file="Snail.png")
     if app.market:
         WormPicture=PhotoImage(file="Worm.png")
-        canvas.create_image(app.wormX, app.wormY, image=WormPicture)
+        canvas.create_image(app.wormX-50, app.wormY, image=WormPicture)
     if app.market:
         SnailPicture=PhotoImage(file="Snail.png")
-        canvas.create_image(app.snailX, app.snailY, image=SnailPicture)
-
+        canvas.create_image(app.snailX+50, app.snailY, image=SnailPicture)
+    
 def redrawAll(app, canvas):
     drawBackground(app, canvas)
     drawDynamicAquarium(app, canvas)
     # drawKimchee(app, canvas)  
-    if app.moving:
-        drawSwimmingKimchee(app, canvas)
-    else:
+    if not app.moving:
         drawKimchee(app, canvas)
+    else:
+        drawSwimmingKimchee(app, canvas)
+    if app.market:
+        drawMarketScreen(app, canvas)
+
+
 
     # drawKimcheeSmall(app, canvas)  
     # drawKimcheeMedium(app, canvas) 
